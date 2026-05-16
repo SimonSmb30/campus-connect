@@ -1,0 +1,13 @@
+.git
+node_modules
+.next
+.env
+.env.local
+.DS_Store
+
+campusconnect.sqlite3
+campusconnect.sqlite3-wal
+campusconnect.sqlite3-shm
+backups/
+public/uploads/generated/
+*.pdf
