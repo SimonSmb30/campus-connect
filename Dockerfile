@@ -27,6 +27,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/scripts ./scripts
 
+RUN mkdir -p public/uploads/generated public/uploads/events && \
+    chown -R nodejs:nodejs public/uploads
+
 USER nodejs
 
 EXPOSE 8080
