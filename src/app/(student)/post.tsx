@@ -238,6 +238,7 @@ export default function PostPage() {
     if (generationsLeft <= 0) return
     setShowImageActions(false)
     setGeneratingImage(true)
+    setAiError('')
 
     try {
       const res = await fetch('/api/generate-image', {
