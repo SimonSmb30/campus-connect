@@ -6,6 +6,9 @@ import { createToken, sessionCookieOptions } from '@/lib/auth'
 
 // GET /api/verify?token=xxx&type=student|admin&id=xxx
 export async function GET(req: NextRequest) {
+  // Cloud Run sieht intern http://0.0.0.0:8080 – externe URL nur aus NEXTAUTH_URL
+  const baseUrl = process.env.NEXTAUTH_URL ?? new URL(req.url).origin
+
   try {
     const { searchParams } = new URL(req.url)
     const token = searchParams.get('token')
@@ -13,7 +16,7 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id')
 
     if (!token || !id) {
-      return NextResponse.redirect(new URL('/login?error=invalid_token', req.url))
+      return NextResponse.redirect(new URL('/login?error=invalid_token', baseUrl))
     }
 
     // ── Student ─────────────────────────────────────────────────────────────
@@ -21,7 +24,7 @@ export async function GET(req: NextRequest) {
       const [user] = await db.select().from(users).where(eq(users.id, id))
 
       if (!user || user.verifyToken !== token) {
-        return NextResponse.redirect(new URL('/login?error=invalid_token', req.url))
+        return NextResponse.redirect(new URL('/login?error=invalid_token', baseUrl))
       }
 
       await db.update(users)
@@ -36,7 +39,7 @@ export async function GET(req: NextRequest) {
         name: user.name,
       })
 
-      const res = NextResponse.redirect(new URL('/feed', req.url))
+      const res = NextResponse.redirect(new URL('/feed', baseUrl))
       res.cookies.set(sessionCookieOptions(sessionToken))
       return res
     }
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
       const [uni] = await db.select().from(universities).where(eq(universities.id, id))
 
       if (!uni || uni.verifyToken !== token) {
-        return NextResponse.redirect(new URL('/login?error=invalid_token', req.url))
+        return NextResponse.redirect(new URL('/login?error=invalid_token', baseUrl))
       }
 
       await db.update(universities)
@@ -61,14 +64,14 @@ export async function GET(req: NextRequest) {
         name: uni.contactName,
       })
 
-      const res = NextResponse.redirect(new URL('/admin/dashboard', req.url))
+      const res = NextResponse.redirect(new URL('/admin/dashboard', baseUrl))
       res.cookies.set(sessionCookieOptions(sessionToken))
       return res
     }
 
-    return NextResponse.redirect(new URL('/login?error=invalid_token', req.url))
+    return NextResponse.redirect(new URL('/login?error=invalid_token', baseUrl))
   } catch (err) {
     console.error('Verify error:', err)
-    return NextResponse.redirect(new URL('/login?error=server_error', req.url))
+    return NextResponse.redirect(new URL('/login?error=server_error', baseUrl))
   }
 }
