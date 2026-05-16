@@ -245,8 +245,9 @@ export default function PostPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          event: { title, category, location, date, description: desc },
+          event: { title, category, location, date, startTime, endTime, description: desc },
           context: description,
+          imageDataUrl: imageDataUrl || undefined,
         }),
       })
 
