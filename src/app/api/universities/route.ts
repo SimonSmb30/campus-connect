@@ -5,10 +5,20 @@ import { db } from '@/db'
 import { universities } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { sendAdminWelcomeEmail } from '@/lib/email'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // POST /api/universities  → Hochschule registrieren (Admin)
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+    const { allowed } = checkRateLimit(`register:${ip}`, 10, 60 * 60 * 1000)
+    if (!allowed) {
+      return NextResponse.json(
+        { ok: false, error: 'Zu viele Registrierungsversuche. Bitte in einer Stunde erneut versuchen.' },
+        { status: 429 }
+      )
+    }
+
     const body = await req.json()
     const { universityName, emailDomain, contactName, contactEmail, password, city } = body
 
@@ -47,20 +57,21 @@ export async function POST(req: NextRequest) {
       city: city?.trim() ?? null,
     })
 
-    // Verifikations-Mail senden
     const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
     const verifyUrl = `${baseUrl}/api/verify?token=${verifyToken}&type=admin&id=${id}`
 
-    // Verifikations-Mail senden (fire-and-forget – blockiert den Request nicht)
-    sendAdminWelcomeEmail({
-      to: normalizedEmail,
-      name: contactName.trim(),
-      university: universityName.trim(),
-      verifyUrl,
-    }).catch(err => console.error('E-Mail konnte nicht gesendet werden:', err))
-
-    // Kein Auto-Login – erst nach E-Mail-Bestätigung
-    return NextResponse.json({ ok: true })
+    try {
+      await sendAdminWelcomeEmail({
+        to: normalizedEmail,
+        name: contactName.trim(),
+        university: universityName.trim(),
+        verifyUrl,
+      })
+      return NextResponse.json({ ok: true, emailSent: true })
+    } catch (mailErr) {
+      console.error('❌ Mailversand fehlgeschlagen:', mailErr)
+      return NextResponse.json({ ok: true, emailSent: false })
+    }
   } catch (err) {
     console.error('University register error:', err)
     return NextResponse.json({ ok: false, error: 'Serverfehler.' }, { status: 500 })

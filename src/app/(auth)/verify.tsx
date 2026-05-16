@@ -1,17 +1,53 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { useRouter } from 'next/navigation'
-import { Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
 
 function VerifyContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const email = searchParams.get('email') ?? ''
+  const type = searchParams.get('type') ?? 'student'
+  const initialEmailSent = searchParams.get('emailSent') !== 'false'
+
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+  const [resendError, setResendError] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState(0)
+
+  useEffect(() => {
+    if (countdown <= 0) return
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [countdown])
+
+  async function handleResend() {
+    setResendLoading(true)
+    setResendError(null)
+    try {
+      const res = await fetch('/api/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type }),
+      })
+      const data = await res.json()
+      if (!data.ok) {
+        setResendError(data.error)
+      } else {
+        setResendSuccess(true)
+        setCountdown(60)
+      }
+    } catch {
+      setResendError('Netzwerkfehler. Bitte versuche es erneut.')
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between bg-white px-6 py-12">
       <div className="w-full max-w-sm flex flex-col items-center gap-8 pt-8">
+
         {/* Icon */}
         <div className="relative">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-orange-100">
@@ -30,11 +66,15 @@ function VerifyContent() {
           </div>
         </div>
 
-        {/* Texte */}
+        {/* Titel & Text */}
         <div className="flex flex-col items-center gap-3 text-center">
           <h1 className="text-[28px] font-bold text-[#1A1F2E]">E-Mail bestätigen</h1>
           <p className="text-base leading-relaxed text-gray-500">
-            Wir haben dir einen Bestätigungslink gesendet. Klicke auf den Link in der E-Mail um dein Konto zu aktivieren.
+            {resendSuccess
+              ? 'E-Mail erfolgreich gesendet! Klicke auf den Link in der E-Mail um dein Konto zu aktivieren.'
+              : initialEmailSent
+              ? 'Wir haben dir einen Bestätigungslink gesendet. Klicke auf den Link in der E-Mail um dein Konto zu aktivieren.'
+              : 'Die E-Mail konnte leider nicht gesendet werden. Bitte versuche es mit dem Button unten erneut.'}
           </p>
         </div>
 
@@ -46,7 +86,14 @@ function VerifyContent() {
           </div>
         )}
 
-        {/* Hinweis */}
+        {/* Fehler-Banner wenn initiales Senden fehlschlug */}
+        {!initialEmailSent && !resendSuccess && (
+          <div className="w-full rounded-2xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 text-center">
+            E-Mail konnte nicht gesendet werden. Bitte klicke auf „E-Mail erneut senden".
+          </div>
+        )}
+
+        {/* Spam-Hinweis */}
         <div className="w-full flex flex-col items-center gap-2 rounded-2xl bg-orange-50 p-4">
           <div className="flex gap-1.5">
             {[0, 1, 2].map(i => (
@@ -55,6 +102,30 @@ function VerifyContent() {
           </div>
           <p className="text-sm text-gray-500 text-center">Überprüfe auch deinen Spam-Ordner</p>
         </div>
+
+        {/* Resend-Fehler */}
+        {resendError && (
+          <p className="text-sm text-red-500 text-center">{resendError}</p>
+        )}
+
+        {/* Resend-Button */}
+        {!resendSuccess && (
+          <button
+            onClick={handleResend}
+            disabled={resendLoading || countdown > 0}
+            className={`w-full rounded-2xl px-4 py-3 text-base font-semibold transition-opacity disabled:opacity-50 ${
+              initialEmailSent
+                ? 'border border-[#F05A1E] text-[#F05A1E] bg-white'
+                : 'bg-[#F05A1E] text-white'
+            }`}
+          >
+            {resendLoading
+              ? 'Senden...'
+              : countdown > 0
+              ? `Erneut senden in ${countdown}s`
+              : 'E-Mail erneut senden'}
+          </button>
+        )}
 
         <button
           className="text-sm font-medium text-[#F05A1E]"

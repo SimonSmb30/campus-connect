@@ -40,7 +40,7 @@ export async function loginAction(
 
   // Studenten-Check (users-Tabelle)
   const [user] = await db.select().from(users).where(eq(users.email, email))
-  if (!user) return { error: 'Kein Konto mit dieser E-Mail gefunden.' }
+  if (!user) return { error: 'E-Mail oder Passwort falsch.' }
 
   const valid = await bcrypt.compare(password, user.password)
   if (!valid) return { error: 'Passwort falsch.' }

@@ -6,6 +6,7 @@ import { universities, users, moderationLogs } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { sendStudentVerifyEmail } from '@/lib/email'
 import { getSessionFromRequest } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // GET /api/users  → Alle Nutzer der Hochschule (Admin)
 export async function GET(req: NextRequest) {
@@ -34,6 +35,15 @@ export async function GET(req: NextRequest) {
 // POST /api/users  → Studierenden registrieren
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+    const { allowed } = checkRateLimit(`register:${ip}`, 10, 60 * 60 * 1000)
+    if (!allowed) {
+      return NextResponse.json(
+        { ok: false, error: 'Zu viele Registrierungsversuche. Bitte in einer Stunde erneut versuchen.' },
+        { status: 429 }
+      )
+    }
+
     const body = await req.json()
     const { name, email, password } = body
 
@@ -77,14 +87,16 @@ export async function POST(req: NextRequest) {
       emailVerified: false,
     })
 
-    // Verifikations-Mail senden (fire-and-forget – blockiert den Request nicht)
     const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
     const verifyUrl = `${baseUrl}/api/verify?token=${verifyToken}&type=student&id=${id}`
-    sendStudentVerifyEmail({ to: normalizedEmail, name: name.trim(), verifyUrl })
-      .then(() => console.log('✅ Verifikationsmail gesendet an:', normalizedEmail))
-      .catch(err => console.error('❌ Mailversand fehlgeschlagen:', err?.message ?? err))
 
-    return NextResponse.json({ ok: true, redirect: '/verify' })
+    try {
+      await sendStudentVerifyEmail({ to: normalizedEmail, name: name.trim(), verifyUrl })
+      return NextResponse.json({ ok: true, emailSent: true })
+    } catch (mailErr) {
+      console.error('❌ Mailversand fehlgeschlagen:', mailErr)
+      return NextResponse.json({ ok: true, emailSent: false })
+    }
   } catch (err) {
     console.error('User register error:', err)
     return NextResponse.json({ ok: false, error: 'Serverfehler.' }, { status: 500 })

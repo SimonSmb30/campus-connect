@@ -122,7 +122,7 @@ function StudentForm() {
       })
       const data = await res.json()
       if (!data.ok) { setErrors({ general: data.error }); return }
-      router.push(`/verify?email=${encodeURIComponent(email)}`)
+      router.push(`/verify?email=${encodeURIComponent(email)}&type=student&emailSent=${data.emailSent ?? true}`)
     } catch {
       setErrors({ general: 'Netzwerkfehler. Bitte versuche es erneut.' })
     } finally {
@@ -261,7 +261,7 @@ function AdminForm() {
       })
       const data = await res.json()
       if (!data.ok) { setErrors({ general: data.error }); return }
-      router.push(`/verify?email=${encodeURIComponent(email)}`)
+      router.push(`/verify?email=${encodeURIComponent(email)}&type=admin&emailSent=${data.emailSent ?? true}`)
     } catch {
       setErrors({ general: 'Netzwerkfehler. Bitte versuche es erneut.' })
     } finally {
