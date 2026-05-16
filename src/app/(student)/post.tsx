@@ -377,7 +377,7 @@ export default function PostPage() {
                     </div>
                     <span className="text-white text-sm font-semibold">Foto ändern</span>
                   </div>
-                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 </label>
               ) : (
                 <label className="cursor-pointer h-full w-full flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50/50 px-6 py-10">
@@ -391,7 +391,7 @@ export default function PostPage() {
                     <p className="font-semibold text-gray-500">Foto aufnehmen / auswählen</p>
                     <p className="text-xs text-gray-400 mt-1">Flyer, Screenshot oder Foto</p>
                   </div>
-                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 </label>
               )}
             </div>
@@ -583,7 +583,7 @@ export default function PostPage() {
                           <line x1="12" y1="3" x2="12" y2="15" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" />
                         </svg>
                         Hochladen
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
+                        <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                       </label>
                       <button
                         onClick={handleGenerateImage}
@@ -844,7 +844,6 @@ export default function PostPage() {
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={e => { handleImageChange(e); setShowImageActions(false) }}
               />
