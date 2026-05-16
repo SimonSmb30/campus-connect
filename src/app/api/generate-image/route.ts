@@ -20,7 +20,7 @@ const CATEGORY_MOODS: Record<string, string> = {
 }
 
 async function saveGeneratedImage(filename: string, image: Buffer) {
-  const bucketName = process.env.GCS_BUCKET_NAME
+  const bucketName = process.env.BUCKET_NAME ?? process.env.GCS_BUCKET_NAME
   if (bucketName) {
     const objectName = `uploads/generated/${filename}`
     await storage.bucket(bucketName).file(objectName).save(image, {
